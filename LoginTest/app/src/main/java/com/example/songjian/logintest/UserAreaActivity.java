@@ -1,63 +1,56 @@
 package com.example.songjian.logintest;
 
+import android.app.Dialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.os.Bundle;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
-import android.os.Bundle;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import org.jivesoftware.smack.SmackException;
 import org.jivesoftware.smack.XMPPException;
-import org.jivesoftware.smack.packet.Presence;
 import org.jivesoftware.smack.roster.Roster;
 import org.jivesoftware.smack.roster.RosterEntry;
-import org.jivesoftware.smack.roster.RosterListener;
+import org.jivesoftware.smack.roster.RosterGroup;
 import org.jivesoftware.smack.tcp.XMPPTCPConnection;
+import org.jivesoftware.smackx.search.ReportedData;
+import org.jivesoftware.smackx.search.UserSearchManager;
+import org.jivesoftware.smackx.xdata.Form;
+import org.jivesoftware.smackx.search.ReportedData.Row;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 public class UserAreaActivity extends AppCompatActivity {
     private Context mContext;
-    private LoginActivity instance = LoginActivity.instance;
-    private Roster roster = Roster.getInstanceFor(instance.connection);
+    private static LoginActivity instance = LoginActivity.instance;
+    public static Roster roster = Roster.getInstanceFor(instance.connection);
+    //public static UserAreaActivity UserAreaActivityInstance = null;
 
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_user_area);
-        /*
-        roster.addRosterListener(new RosterListener() {
-            @Override
-            public void entriesAdded(Collection<String> addresses) {}
 
-            @Override
-            public void entriesUpdated(Collection<String> addresses) {}
-
-            @Override
-            public void entriesDeleted(Collection<String> addresses) {}
-
-            @Override
-            public void presenceChanged(Presence presence) {
-                System.out.println("Presence changed: " + presence.getFrom() + " " + presence);
-            }
-        });
-        */
+        //UserAreaActivityInstance = this;
         mContext = UserAreaActivity.this;
         final EditText etInputName = (EditText) findViewById(R.id.etInputName);
 
         final EditText etFriends = (EditText) findViewById(R.id.etFriends);
 
+        //登出按钮
         final Button bSignout = (Button) findViewById(R.id.bSignout);
         bSignout.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -66,34 +59,40 @@ public class UserAreaActivity extends AppCompatActivity {
             }
         });
 
+        //测试用
+        final Button bTest = (Button) findViewById(R.id.bTest);
+        bTest.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent registerIntent = new Intent(UserAreaActivity.this, FriendsList.class);
+                UserAreaActivity.this.startActivity(registerIntent);
+                UserAreaActivity.this.finish();
+            }
+        });
+
+
+        //添加好友按钮
         final Button bAddFriends = (Button) findViewById(R.id.bAddFriends);
         bAddFriends.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                String userName = etInputName.getText().toString();
-                String nickName = etInputName.getText().toString();
-
-                if (addFriend(userName, nickName, instance.connection)) {
-                    Toast.makeText(mContext, "添加好友成功", Toast.LENGTH_SHORT).show();
-                } else {
-                    Toast.makeText(mContext, "添加好友失败", Toast.LENGTH_SHORT).show();
-                }
+                addFriendDialog();
             }
         });
 
+        //删除好友按钮
         final Button bRemoveFriends = (Button) findViewById(R.id.bRemoveFriends);
         bRemoveFriends.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 String userName = etInputName.getText().toString();
                 if (!"".equals(userName)) {
-                    if (removeFriend(userName, instance.connection)) {
+                    if (removeFriend(userName)) {
                         Toast.makeText(mContext, "删除好友成功", Toast.LENGTH_SHORT).show();
                     } else {
                         Toast.makeText(mContext, "删除好友失败", Toast.LENGTH_SHORT).show();
                     }
-                }
-                else
+                } else
                     Toast.makeText(mContext, "输入不能为空", Toast.LENGTH_SHORT).show();
 
             }
@@ -103,7 +102,17 @@ public class UserAreaActivity extends AppCompatActivity {
         bFriendList.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                //Roster roster = Roster.getInstanceFor(instance.connection);//放这里
+                try {
+                    roster.reload();
+                } catch (SmackException.NotLoggedInException e) {
+                    e.printStackTrace();
+                } catch (SmackException.NotConnectedException e) {
+                    e.printStackTrace();
+                }
+                Intent registerIntent = new Intent(UserAreaActivity.this, FriendsList.class);
+                UserAreaActivity.this.startActivity(registerIntent);
+                UserAreaActivity.this.finish();
+                /*
                 try {
                     roster.reload();
                 } catch (SmackException.NotLoggedInException e) {
@@ -117,7 +126,9 @@ public class UserAreaActivity extends AppCompatActivity {
                 for (RosterEntry entry : entries) {
                     msg += entry.toString().split(":")[0] + '\n';
                 }
+
                 etFriends.setText(msg);
+                */
             }
         });
     }
@@ -151,6 +162,34 @@ public class UserAreaActivity extends AppCompatActivity {
         alert.show();
     }
 
+    private void addFriendDialog() {
+        LayoutInflater layoutInflater = LayoutInflater.from(mContext);
+        final View viewAddFriend = layoutInflater.inflate(R.layout.add_friend, null);
+        Dialog dialog = new AlertDialog.Builder(mContext)
+                .setTitle("Add friend")
+                .setView(viewAddFriend)
+                .setNegativeButton("cancel", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        dialog.dismiss();
+                    }
+                })
+                .setPositiveButton("add", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        EditText etAddFriend = (EditText) viewAddFriend.findViewById(R.id.etAddFriend);
+                        String userName = etAddFriend.getText().toString();
+                        String nickName = etAddFriend.getText().toString();
+                        if (addFriend(userName, nickName, instance.connection)) {
+                            Toast.makeText(mContext, "adding friend succeeded", Toast.LENGTH_SHORT).show();
+                        } else {
+                            Toast.makeText(mContext, "adding friend failed", Toast.LENGTH_SHORT).show();
+                        }
+                    }
+                }).create();
+        dialog.show();
+    }
+
     private boolean isConnected(XMPPTCPConnection connection) {
         if (connection == null) {
             return false;
@@ -170,8 +209,13 @@ public class UserAreaActivity extends AppCompatActivity {
     public boolean addFriend(String user, String nickName, XMPPTCPConnection connection) {
         if (isConnected(connection)) {
             try {
-                roster.createEntry(user, nickName, null);
-                return true;
+                if (isUserExist(user)) {
+                    roster.createEntry(user, nickName, null);
+                    return true;
+                } else {
+                    Toast.makeText(mContext, "User doesn't exist", Toast.LENGTH_SHORT).show();
+                    return false;
+                }
             } catch (SmackException.NotLoggedInException e) {
                 e.printStackTrace();
             } catch (SmackException.NoResponseException e) {
@@ -186,35 +230,126 @@ public class UserAreaActivity extends AppCompatActivity {
     }
 
 
-    public boolean removeFriend(String user, XMPPTCPConnection connection) {
+    public boolean removeFriend(String user) {
         try {
             if (user.contains("@")) {
                 user = user.split("@")[0];
             }
-            RosterEntry entry = roster.getEntry(user);
-            if(entry!=null){
-                roster.removeEntry(entry);
-                return true;
-            }
-            else
+            if (isUserExist(user)) {
+                RosterEntry entry = roster.getEntry(user);
+                if (entry != null) {
+                    roster.removeEntry(entry);
+                    return true;
+                } else
+                    return false;
+            } else {
+                Toast.makeText(mContext, "User doesn't exist", Toast.LENGTH_SHORT).show();
                 return false;
+            }
         } catch (SmackException.NotLoggedInException e) {
             e.printStackTrace();
-            return false;
         } catch (SmackException.NoResponseException e) {
             e.printStackTrace();
-            return false;
         } catch (SmackException.NotConnectedException e) {
             e.printStackTrace();
-            return false;
         } catch (XMPPException.XMPPErrorException e) {
+            e.printStackTrace();
+        }
+        throw new NullPointerException("failed to connect to the server!");
+    }
+
+    /*
+        public void setPresence(int code) {
+            Presence presence;
+            switch (code) {
+                case 0:
+                    presence = new Presence(Presence.Type.available);
+                    try {
+                        instance.connection.sendPacket(presence);
+                    } catch (SmackException.NotConnectedException e) {
+                        e.printStackTrace();
+                    }
+                    Log.v("state", "设置在线");
+                    break;
+                case 1:
+                    presence = new Presence(Presence.Type.available);
+                    presence.setMode(Presence.Mode.chat);
+                    try {
+                        instance.connection.sendPacket(presence);
+                    } catch (SmackException.NotConnectedException e) {
+                        e.printStackTrace();
+                    }
+                    Log.v("state", "设置Q我吧");
+                    System.out.println(presence.toXML());
+                    break;
+                case 2:
+                    presence = new Presence(Presence.Type.available);
+                    presence.setMode(Presence.Mode.dnd);
+                    try {
+                        instance.connection.sendPacket(presence);
+                    } catch (SmackException.NotConnectedException e) {
+                        e.printStackTrace();
+                    }
+                    Log.v("state", "设置忙碌");
+                    System.out.println(presence.toXML());
+                    break;
+                case 3:
+                    presence = new Presence(Presence.Type.available);
+                    presence.setMode(Presence.Mode.away);
+                    try {
+                        instance.connection.sendPacket(presence);
+                    } catch (SmackException.NotConnectedException e) {
+                        e.printStackTrace();
+                    }
+                    Log.v("state", "设置离开");
+                    System.out.println(presence.toXML());
+                    break;
+                case 4:
+                    Collection<RosterEntry> entries = roster.getEntries();
+                    for (RosterEntry entry : entries) {
+                        presence = new Presence(Presence.Type.unavailable);
+                        presence.setPacketID(Packet.ID);
+                    }
+            }
+
+        }
+    */
+    //查询所有分组
+    public static List<RosterGroup> getGroups(Roster roster) {
+        List<RosterGroup> grouplist = new ArrayList<RosterGroup>();
+        Collection<RosterGroup> rosterGroup = roster.getGroups();
+        Iterator<RosterGroup> i = rosterGroup.iterator();
+        while (i.hasNext()) {
+            grouplist.add(i.next());
+        }
+        return grouplist;
+    }
+
+    //添加分组
+    public static boolean addGroup(Roster roster, String groupName) {
+        try {
+            roster.createGroup(groupName);
+            return true;
+        } catch (Exception e) {
             e.printStackTrace();
             return false;
         }
-        //throw new NullPointerException("failed to connect to the server!");
     }
 
+    //按组查询好友
+    public static List<RosterEntry> getEntriesByGroup(Roster roster,
+                                                      String groupName) {
+        List<RosterEntry> Entrieslist = new ArrayList<RosterEntry>();
+        RosterGroup rosterGroup = roster.getGroup(groupName);
+        Collection<RosterEntry> rosterEntry = rosterGroup.getEntries();
+        Iterator<RosterEntry> i = rosterEntry.iterator();
+        while (i.hasNext()) {
+            Entrieslist.add(i.next());
+        }
+        return Entrieslist;
+    }
 
+    //查询所有好友
     public List<RosterEntry> getAllEntries(Roster roster) {
         List<RosterEntry> Entrieslist = new ArrayList<RosterEntry>();
         Collection<RosterEntry> rosterEntry = roster.getEntries();
@@ -223,5 +358,51 @@ public class UserAreaActivity extends AppCompatActivity {
             Entrieslist.add(i.next());
         }
         return Entrieslist;
+    }
+
+    //查询用户
+    public static List<HashMap<String, String>> searchUsers(String userName) {
+        if (instance.connection == null)
+            return null;
+        HashMap<String, String> user = null;
+        List<HashMap<String, String>> results = new ArrayList<HashMap<String, String>>();
+        System.out.println("Begin searching......" + instance.connection.getHost() + "  " + instance.connection.getServiceName());
+
+        try {
+            UserSearchManager usm = new UserSearchManager(instance.connection);
+            Form searchForm = usm.getSearchForm("search." + instance.connection.getServiceName());
+            Form answerForm = searchForm.createAnswerForm();
+            answerForm.setAnswer("Username", true);
+            answerForm.setAnswer("search", userName);
+            ReportedData data = usm.getSearchResults(answerForm, "search." + instance.connection.getServiceName());
+
+            Iterator<Row> it = data.getRows().iterator();
+            Row row = null;
+
+            while (it.hasNext()) {
+                user = new HashMap<String, String>();
+                row = it.next();
+                user.put("userAccount", row.getValues("jid").toString());
+                //user.put("userPhote", row.getValues("userPhote").toString());
+                results.add(user);
+            }
+
+        } catch (SmackException.NoResponseException e) {
+            e.printStackTrace();
+        } catch (SmackException.NotConnectedException e) {
+            e.printStackTrace();
+        } catch (XMPPException.XMPPErrorException e) {
+            e.printStackTrace();
+        }
+        return results;
+    }
+
+    public static boolean isUserExist(String user) {
+        List<HashMap<String, String>> results = searchUsers(user);
+        Iterator<HashMap<String, String>> iterator = results.iterator();
+        if (iterator.hasNext()) {
+            return true;
+        }
+        return false;
     }
 }
