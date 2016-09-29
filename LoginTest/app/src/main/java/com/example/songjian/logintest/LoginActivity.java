@@ -17,14 +17,13 @@ import org.jivesoftware.smack.tcp.XMPPTCPConnection;
 import java.io.IOException;
 
 public class LoginActivity extends AppCompatActivity {
-    public static LoginActivity instance = null;
-    public XMPPTCPConnection connection = null;
+    private ConnectionManager mConnectionManager = null;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login_register);
-
-        instance = this;
+        mConnectionManager = ConnectionManager.shareInstance();
         final EditText etUsername = (EditText) findViewById(R.id.etUsername);
         final EditText etPassword = (EditText) findViewById(R.id.etPassword);
         final EditText etHost = (EditText) findViewById(R.id.etHost);
@@ -42,9 +41,9 @@ public class LoginActivity extends AppCompatActivity {
                 String loginHost = etHost.getText().toString();
 
                 try {
-                    connection = new Connection(loginName, loginPassword, loginHost).connection();
-
-                    if (isConnected(connection)) {
+//                    mConnectionManager.connection = new Connection(loginName, loginPassword, loginHost).connection();
+                    mConnectionManager.connect(loginName, loginPassword, loginHost);
+                    if (mConnectionManager.isConnected()) {
                         Toast.makeText(getApplicationContext(), "Connection complete!", Toast.LENGTH_LONG).show();
                         Intent userIntent = new Intent(LoginActivity.this, UserAreaActivity.class);
                         LoginActivity.this.startActivity(userIntent);
@@ -52,7 +51,7 @@ public class LoginActivity extends AppCompatActivity {
                     } else {
                         Toast.makeText(getApplicationContext(), "Connection failed!", Toast.LENGTH_LONG).show();
                     }
-                }catch (Exception e){
+                } catch (Exception e) {
                     Toast.makeText(getApplicationContext(), "Check login details", Toast.LENGTH_LONG).show();
                 }
             }
@@ -68,33 +67,5 @@ public class LoginActivity extends AppCompatActivity {
 
             }
         });
-    }
-
-    private boolean isConnected(XMPPTCPConnection connection) {
-        if (connection == null) {
-            return false;
-        }
-        if (!connection.isConnected()) {
-            try {
-                connection.connect();
-                return true;
-            } catch (SmackException | IOException | XMPPException e) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    public boolean logout() {
-        if(!isConnected(connection)) {
-            return false;
-        }
-        try {
-            connection.instantShutdown();
-            return  true;
-        } catch (Exception e) {
-            e.printStackTrace();
-            return  false;
-        }
     }
 }

@@ -45,8 +45,7 @@ import java.util.regex.Pattern;
  */
 public class FriendsList extends ExpandableListActivity {
     //private static UserAreaActivity userAreaActivityInstance = UserAreaActivity.UserAreaActivityInstance;
-    private static LoginActivity instance = LoginActivity.instance;
-    private Roster roster = UserAreaActivity.roster;
+    private static ConnectionManager mConnectionManager = ConnectionManager.shareInstance();
 
     /*
     * create level 1 container
@@ -57,6 +56,7 @@ public class FriendsList extends ExpandableListActivity {
     * store content, in order to show content in the list
     * */
     private List<List<Map<String, String>>> childs = new ArrayList<List<Map<String, String>>>();
+    private Roster roster = mConnectionManager.getRoster();
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -172,8 +172,9 @@ public class FriendsList extends ExpandableListActivity {
         Pattern r2 = Pattern.compile(pattern2);
         Matcher m2 = r2.matcher(childs.get(groupPosition).get(childPosition).toString());
         if (m2.find())
-            JID = m2.group(1)+"@"+instance.connection.getServiceName();
+            JID = m2.group(1) + "@" + mConnectionManager.connection.getServiceName();
         chatIntent.putExtra("JID", JID);
+        Log.d("jid", JID);
         FriendsList.this.startActivity(chatIntent);
         FriendsList.this.finish();
         return super.onChildClick(parent, v, groupPosition, childPosition, id);
@@ -214,7 +215,7 @@ public class FriendsList extends ExpandableListActivity {
                         String groupName = etAddFriendGroup.getText().toString();
                         if ("".equals(groupName))
                             groupName = null;
-                        if (addFriend(userName, nickName, groupName, instance.connection)) {
+                        if (addFriend(userName, nickName, groupName, mConnectionManager.connection)) {
                             new Handler(Looper.getMainLooper()).post(new Runnable() {
                                 @Override
                                 public void run() {
@@ -232,23 +233,9 @@ public class FriendsList extends ExpandableListActivity {
         dialog.show();
     }
 
-    private boolean isConnected(XMPPTCPConnection connection) {
-        if (connection == null) {
-            return false;
-        }
-        if (!connection.isConnected()) {
-            try {
-                connection.connect();
-                return true;
-            } catch (SmackException | IOException | XMPPException e) {
-                return false;
-            }
-        }
-        return true;
-    }
 
     public boolean addFriend(String user, String nickName, String groupName, XMPPTCPConnection connection) {
-        if (isConnected(connection)) {
+        if (mConnectionManager.isConnected()) {
             try {
                 if (isUserExist(user)) {
                     roster.createEntry(user, nickName, new String[]{groupName});
@@ -347,19 +334,19 @@ public class FriendsList extends ExpandableListActivity {
 
     //查询用户
     public static List<HashMap<String, String>> searchUsers(String userName) {
-        if (instance.connection == null)
+        if (mConnectionManager.connection == null)
             return null;
         HashMap<String, String> user = null;
         List<HashMap<String, String>> results = new ArrayList<HashMap<String, String>>();
-        System.out.println("Begin searching......" + instance.connection.getHost() + "  " + instance.connection.getServiceName());
+        System.out.println("Begin searching......" + mConnectionManager.connection.getHost() + "  " + mConnectionManager.connection.getServiceName());
 
         try {
-            UserSearchManager usm = new UserSearchManager(instance.connection);
-            Form searchForm = usm.getSearchForm("search." + instance.connection.getServiceName());
+            UserSearchManager usm = new UserSearchManager(mConnectionManager.connection);
+            Form searchForm = usm.getSearchForm("search." + mConnectionManager.connection.getServiceName());
             Form answerForm = searchForm.createAnswerForm();
             answerForm.setAnswer("Username", true);
             answerForm.setAnswer("search", userName);
-            ReportedData data = usm.getSearchResults(answerForm, "search." + instance.connection.getServiceName());
+            ReportedData data = usm.getSearchResults(answerForm, "search." + mConnectionManager.connection.getServiceName());
 
             Iterator<ReportedData.Row> it = data.getRows().iterator();
             ReportedData.Row row = null;

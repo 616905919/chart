@@ -27,7 +27,7 @@ import java.util.List;
  * Created by songjian on 26/09/2016.
  */
 public class ChatActivity extends AppCompatActivity {
-    private static LoginActivity instance = LoginActivity.instance;
+    private static ConnectionManager mConnectionManager = ConnectionManager.shareInstance();
 
     private ListView msgListView;
     private EditText inputText;
@@ -40,8 +40,8 @@ public class ChatActivity extends AppCompatActivity {
 
     private List<Msg> msgList = new ArrayList<Msg>();
 
-    /*
-    private ChatManagerListener chatManagerListener = new ChatManagerListener() {
+
+    private ChatManagerListener mChatManagerListener = new ChatManagerListener() {
         @Override
         public void chatCreated(Chat chat, boolean createdLocally) {
             chat.addMessageListener(new ChatMessageListener() {
@@ -57,7 +57,7 @@ public class ChatActivity extends AppCompatActivity {
             });
         }
     };
-    */
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -71,6 +71,7 @@ public class ChatActivity extends AppCompatActivity {
         chat = createChat(userJid);
         initMsgs();
 
+
         adapter = new MsgAdapter(ChatActivity.this, R.layout.msg_item, msgList);
         inputText = (EditText) findViewById(R.id.input_text);
         send = (Button) findViewById(R.id.send);
@@ -83,7 +84,7 @@ public class ChatActivity extends AppCompatActivity {
                 String content = inputText.getText().toString();
                 if (!"".equals(content)) {
                     try {
-                        //String self = instance.connection.getUser(); //admin@127.0.0.1/smack 这个是发文件的JID
+                        //String self = mConnectionManager.connection.getUser(); //admin@127.0.0.1/smack 这个是发文件的JID
                         chat.sendMessage(content);
                     } catch (SmackException.NotConnectedException e) {
                         e.printStackTrace();
@@ -101,41 +102,25 @@ public class ChatActivity extends AppCompatActivity {
             @Override
             public void onClick(View view) {
                 Intent friendListIntent = new Intent(ChatActivity.this, FriendsList.class);
-                ChatActivity.this.startActivity(friendListIntent);
-                ChatActivity.this.finish();
+                startActivity(friendListIntent);
+                finish();
             }
         });
-
-        ChatManager chatManager = getChatManager();
-        chatManager.addChatListener(new ChatManagerListener() {
-            @Override
-            public void chatCreated(Chat chat, boolean createdLocally) {
-                chat.addMessageListener(new ChatMessageListener() {
-                    @Override
-                    public void processMessage(Chat chat, Message message) {
-                        System.out.print("我收到了: " + message.getBody());
-                    }
-                });
-            }
-        });
+        mConnectionManager.getChatManager().addChatListener(mChatManagerListener);
+//        ChatManager chatManager = getChatManager();
+//        chatManager.addChatListener(new ChatManagerListener() {
+//            @Override
+//            public void chatCreated(Chat chat, boolean createdLocally) {
+//                chat.addMessageListener(new ChatMessageListener() {
+//                    @Override
+//                    public void processMessage(Chat chat, Message message) {
+//                        System.out.print("我收到了: " + message.getBody());
+//                    }
+//                });
+//            }
+//        });
 
     }
-
-    private boolean isConnected(XMPPTCPConnection connection) {
-        if (connection == null) {
-            return false;
-        }
-        if (!connection.isConnected()) {
-            try {
-                connection.connect();
-                return true;
-            } catch (SmackException | IOException | XMPPException e) {
-                return false;
-            }
-        }
-        return true;
-    }
-
 
     private void initMsgs() {
         Msg msg1 = new Msg("Hello, how are you?", Msg.TYPE_RECEIVED);
@@ -159,20 +144,11 @@ public class ChatActivity extends AppCompatActivity {
     */
 
     public Chat createChat(String jid) {
-        if (isConnected(instance.connection)) {
-            ChatManager chatManager = ChatManager.getInstanceFor(instance.connection);
+        if (mConnectionManager.isConnected()) {
+            ChatManager chatManager = ChatManager.getInstanceFor(mConnectionManager.connection);
             return chatManager.createChat(jid);
         }
         throw new NullPointerException("服务器连接失败，请先连接服务器");
     }
-
-    public ChatManager getChatManager() {
-        if (isConnected(instance.connection)) {
-            ChatManager chatManager = ChatManager.getInstanceFor(instance.connection);
-            return chatManager;
-        }
-        throw new NullPointerException("服务器连接失败，请先连接服务器");
-    }
-
 
 }

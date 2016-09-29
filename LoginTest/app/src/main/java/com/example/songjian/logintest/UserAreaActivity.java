@@ -30,12 +30,11 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 
 public class UserAreaActivity extends AppCompatActivity {
     private Context mContext;
-    private static LoginActivity instance = LoginActivity.instance;
-    public static Roster roster = Roster.getInstanceFor(instance.connection);
+    private ConnectionManager mConnectionManager = ConnectionManager.shareInstance();
+    private Roster roster = mConnectionManager.getRoster();
     //public static UserAreaActivity UserAreaActivityInstance = null;
 
 
@@ -148,7 +147,7 @@ public class UserAreaActivity extends AppCompatActivity {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
                         Toast.makeText(mContext, "You have signed out!", Toast.LENGTH_SHORT).show();
-                        final boolean logout = instance.logout();
+                        final boolean logout = mConnectionManager.logout();
                         if (logout) {
                             dialog.dismiss();
                             Intent backIntent = new Intent(UserAreaActivity.this, LoginActivity.class);
@@ -180,7 +179,7 @@ public class UserAreaActivity extends AppCompatActivity {
                         EditText etAddFriend = (EditText) viewAddFriend.findViewById(R.id.etAddFriend);
                         String userName = etAddFriend.getText().toString();
                         String nickName = etAddFriend.getText().toString();
-                        if (addFriend(userName, nickName, instance.connection)) {
+                        if (addFriend(userName, nickName, mConnectionManager.connection)) {
                             Toast.makeText(mContext, "adding friend succeeded", Toast.LENGTH_SHORT).show();
                         } else {
                             Toast.makeText(mContext, "adding friend failed", Toast.LENGTH_SHORT).show();
@@ -190,24 +189,8 @@ public class UserAreaActivity extends AppCompatActivity {
         dialog.show();
     }
 
-    private boolean isConnected(XMPPTCPConnection connection) {
-        if (connection == null) {
-            return false;
-        }
-        if (!connection.isConnected()) {
-            try {
-                connection.connect();
-                return true;
-            } catch (SmackException | IOException | XMPPException e) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-
     public boolean addFriend(String user, String nickName, XMPPTCPConnection connection) {
-        if (isConnected(connection)) {
+        if (mConnectionManager.isConnected()) {
             try {
                 if (isUserExist(user)) {
                     roster.createEntry(user, nickName, null);
@@ -265,7 +248,7 @@ public class UserAreaActivity extends AppCompatActivity {
                 case 0:
                     presence = new Presence(Presence.Type.available);
                     try {
-                        instance.connection.sendPacket(presence);
+                        mConnectionManager.connection.sendPacket(presence);
                     } catch (SmackException.NotConnectedException e) {
                         e.printStackTrace();
                     }
@@ -275,7 +258,7 @@ public class UserAreaActivity extends AppCompatActivity {
                     presence = new Presence(Presence.Type.available);
                     presence.setMode(Presence.Mode.chat);
                     try {
-                        instance.connection.sendPacket(presence);
+                        mConnectionManager.connection.sendPacket(presence);
                     } catch (SmackException.NotConnectedException e) {
                         e.printStackTrace();
                     }
@@ -286,7 +269,7 @@ public class UserAreaActivity extends AppCompatActivity {
                     presence = new Presence(Presence.Type.available);
                     presence.setMode(Presence.Mode.dnd);
                     try {
-                        instance.connection.sendPacket(presence);
+                        mConnectionManager.connection.sendPacket(presence);
                     } catch (SmackException.NotConnectedException e) {
                         e.printStackTrace();
                     }
@@ -297,7 +280,7 @@ public class UserAreaActivity extends AppCompatActivity {
                     presence = new Presence(Presence.Type.available);
                     presence.setMode(Presence.Mode.away);
                     try {
-                        instance.connection.sendPacket(presence);
+                        mConnectionManager.connection.sendPacket(presence);
                     } catch (SmackException.NotConnectedException e) {
                         e.printStackTrace();
                     }
@@ -361,20 +344,20 @@ public class UserAreaActivity extends AppCompatActivity {
     }
 
     //查询用户
-    public static List<HashMap<String, String>> searchUsers(String userName) {
-        if (instance.connection == null)
+    public List<HashMap<String, String>> searchUsers(String userName) {
+        if (mConnectionManager.connection == null)
             return null;
         HashMap<String, String> user = null;
         List<HashMap<String, String>> results = new ArrayList<HashMap<String, String>>();
-        System.out.println("Begin searching......" + instance.connection.getHost() + "  " + instance.connection.getServiceName());
+        System.out.println("Begin searching......" + mConnectionManager.connection.getHost() + "  " + mConnectionManager.connection.getServiceName());
 
         try {
-            UserSearchManager usm = new UserSearchManager(instance.connection);
-            Form searchForm = usm.getSearchForm("search." + instance.connection.getServiceName());
+            UserSearchManager usm = new UserSearchManager(mConnectionManager.connection);
+            Form searchForm = usm.getSearchForm("search." + mConnectionManager.connection.getServiceName());
             Form answerForm = searchForm.createAnswerForm();
             answerForm.setAnswer("Username", true);
             answerForm.setAnswer("search", userName);
-            ReportedData data = usm.getSearchResults(answerForm, "search." + instance.connection.getServiceName());
+            ReportedData data = usm.getSearchResults(answerForm, "search." + mConnectionManager.connection.getServiceName());
 
             Iterator<Row> it = data.getRows().iterator();
             Row row = null;
@@ -397,7 +380,7 @@ public class UserAreaActivity extends AppCompatActivity {
         return results;
     }
 
-    public static boolean isUserExist(String user) {
+    public boolean isUserExist(String user) {
         List<HashMap<String, String>> results = searchUsers(user);
         Iterator<HashMap<String, String>> iterator = results.iterator();
         if (iterator.hasNext()) {
