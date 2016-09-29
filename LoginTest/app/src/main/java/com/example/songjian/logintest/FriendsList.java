@@ -6,7 +6,6 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.Looper;
-import android.os.Message;
 import android.support.v7.app.AlertDialog;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -69,8 +68,8 @@ public class FriendsList extends ExpandableListActivity {
         bBack.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Intent registerIntent = new Intent(FriendsList.this, UserAreaActivity.class);
-                FriendsList.this.startActivity(registerIntent);
+                Intent userAreaActivityIntent = new Intent(FriendsList.this, UserAreaActivity.class);
+                FriendsList.this.startActivity(userAreaActivityIntent);
                 FriendsList.this.finish();
 
                 //setListData();
@@ -82,13 +81,11 @@ public class FriendsList extends ExpandableListActivity {
         bAddFriends.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-//                setListData();
                 addFriendDialog();
             }
         });
     }
 
-    static int a = 0;
 
     public void setListData() {
         groups.clear();
@@ -100,9 +97,10 @@ public class FriendsList extends ExpandableListActivity {
         } catch (SmackException.NotConnectedException e) {
             e.printStackTrace();
         }
-        String pattern = "\\[(.*)\\]";
+        String pattern1 = "\\[(.*)\\]";
+
         // Create a Pattern object
-        Pattern r = Pattern.compile(pattern);
+        Pattern r1 = Pattern.compile(pattern1);
 
         //获得所有用户(userName, group)
         Map<String, String> users = new HashMap<String, String>(); //("stan", "friends" )
@@ -110,10 +108,10 @@ public class FriendsList extends ExpandableListActivity {
         for (RosterEntry entry : entries) {
             System.out.print(entry.toString() + '\n');
             // Create matcher object.
-            Matcher m = r.matcher(entry.toString());
+            Matcher m1 = r1.matcher(entry.toString());
             String groupName = "";
-            if (m.find())
-                groupName = m.group(1);
+            if (m1.find())
+                groupName = m1.group(1);
             else
                 groupName = "DefaultGroup";
             String userName = entry.toString().split(":")[0];
@@ -143,16 +141,12 @@ public class FriendsList extends ExpandableListActivity {
                 if (group.equals(groupName)) {
                     Map<String, String> childItemContent = new HashMap<String, String>();
                     childItemContent.put("child", userName);
-//                    childItemContent.put("child", String.valueOf(a++));
                     childItem.add(childItemContent);
                 }
             }
             childs.add(childItem);
         }
-//        if (getExpandableListAdapter() != null) {
-//            ((SimpleExpandableListAdapter) getExpandableListAdapter()).notifyDataSetChanged();
-//            return;
-//        }
+
         SimpleExpandableListAdapter sela = new SimpleExpandableListAdapter(
                 this, groups, R.layout.friend_list_group, new String[]{"group"},
                 new int[]{R.id.textGroup}, childs, R.layout.friend_list_child,
@@ -172,6 +166,16 @@ public class FriendsList extends ExpandableListActivity {
                         + "子编号"
                         + childs.get(groupPosition).get(childPosition)
                         .toString(), Toast.LENGTH_SHORT).show();
+        Intent chatIntent = new Intent(FriendsList.this, ChatActivity.class);
+        String JID = "";
+        String pattern2 = "\\{.*=(.*)\\}";
+        Pattern r2 = Pattern.compile(pattern2);
+        Matcher m2 = r2.matcher(childs.get(groupPosition).get(childPosition).toString());
+        if (m2.find())
+            JID = m2.group(1)+"@"+instance.connection.getServiceName();
+        chatIntent.putExtra("JID", JID);
+        FriendsList.this.startActivity(chatIntent);
+        FriendsList.this.finish();
         return super.onChildClick(parent, v, groupPosition, childPosition, id);
     }
 
@@ -186,6 +190,7 @@ public class FriendsList extends ExpandableListActivity {
     public void setSelectedGroup(int groupPosition) {
         super.setSelectedGroup(groupPosition);
     }
+
 
     private void addFriendDialog() {
         LayoutInflater layoutInflater = LayoutInflater.from(FriendsList.this);
@@ -210,18 +215,14 @@ public class FriendsList extends ExpandableListActivity {
                         if ("".equals(groupName))
                             groupName = null;
                         if (addFriend(userName, nickName, groupName, instance.connection)) {
-                            setListData();
-                            new Thread(new Runnable() {
+                            new Handler(Looper.getMainLooper()).post(new Runnable() {
                                 @Override
                                 public void run() {
-                                    new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
-                                        @Override
-                                        public void run() {
-                                            setListData();
-                                        }
-                                    }, 10);
+                                    setListData();
                                 }
-                            }).start();
+                            });
+
+                            setListData();
                             Toast.makeText(FriendsList.this, "adding friend succeeded", Toast.LENGTH_SHORT).show();
                         } else {
                             Toast.makeText(FriendsList.this, "adding friend failed", Toast.LENGTH_SHORT).show();

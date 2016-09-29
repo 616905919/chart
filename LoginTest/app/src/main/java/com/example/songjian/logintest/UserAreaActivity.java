@@ -109,8 +109,8 @@ public class UserAreaActivity extends AppCompatActivity {
                 } catch (SmackException.NotConnectedException e) {
                     e.printStackTrace();
                 }
-                Intent registerIntent = new Intent(UserAreaActivity.this, FriendsList.class);
-                UserAreaActivity.this.startActivity(registerIntent);
+                Intent friendListIntent = new Intent(UserAreaActivity.this, FriendsList.class);
+                UserAreaActivity.this.startActivity(friendListIntent);
                 UserAreaActivity.this.finish();
                 /*
                 try {

@@ -18,6 +18,7 @@
             </intent-filter>
         </activity>
         <activity android:name=".RegisterActivity" />
+        <activity android:name=".ChatActivity" />
         <activity android:name=".FriendsList" />
         <activity android:name=".UserAreaActivity"></activity>
     </application>
