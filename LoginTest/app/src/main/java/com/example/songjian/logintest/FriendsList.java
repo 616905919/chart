@@ -17,8 +17,12 @@ import android.widget.SimpleExpandableListAdapter;
 import android.widget.Toast;
 import android.os.Handler;
 
+import org.jivesoftware.smack.MessageListener;
 import org.jivesoftware.smack.SmackException;
 import org.jivesoftware.smack.XMPPException;
+import org.jivesoftware.smack.chat.Chat;
+import org.jivesoftware.smack.chat.ChatManager;
+import org.jivesoftware.smack.chat.ChatMessageListener;
 import org.jivesoftware.smack.roster.Roster;
 import org.jivesoftware.smack.roster.RosterEntry;
 import org.jivesoftware.smack.roster.RosterGroup;
@@ -44,6 +48,9 @@ import java.util.regex.Pattern;
  * Created by songjian on 25/09/2016.
  */
 public class FriendsList extends ExpandableListActivity {
+    //930新加
+    private Map<String, Chat> chatManage = new HashMap<String, Chat>();// 聊天窗口管理map集合
+
     //private static UserAreaActivity userAreaActivityInstance = UserAreaActivity.UserAreaActivityInstance;
     private static ConnectionManager mConnectionManager = ConnectionManager.shareInstance();
 
@@ -85,7 +92,23 @@ public class FriendsList extends ExpandableListActivity {
             }
         });
     }
+    //930新加
+    public Chat getFriendChat (String friend, MessageListener listener) {
+        if(mConnectionManager.connection == null) {
+            return null;
+        }
+        for (String fristr: chatManage.keySet()){
+            if(fristr.equals(friend)){
+                return chatManage.get(fristr);
+            }
+        }
+        ChatManager chatManager = ChatManager.getInstanceFor(mConnectionManager.connection);
 
+        Chat chat = chatManager.createChat(friend+"@"+mConnectionManager.connection.getServiceName(), (ChatMessageListener) listener);
+
+        chatManage.put(friend,chat);
+        return chat;
+    }
 
     public void setListData() {
         groups.clear();
@@ -151,7 +174,7 @@ public class FriendsList extends ExpandableListActivity {
                 this, groups, R.layout.friend_list_group, new String[]{"group"},
                 new int[]{R.id.textGroup}, childs, R.layout.friend_list_child,
                 new String[]{"child"}, new int[]{R.id.textChild});
-        Log.d("c_size_inFunc", String.valueOf(childs.size()));
+        //Log.d("c_size_inFunc", String.valueOf(childs.size()));
         setListAdapter(sela);
     }
 
@@ -172,9 +195,11 @@ public class FriendsList extends ExpandableListActivity {
         Pattern r2 = Pattern.compile(pattern2);
         Matcher m2 = r2.matcher(childs.get(groupPosition).get(childPosition).toString());
         if (m2.find())
+            //JID = m2.group(1) + "@"+"192.168.0.29";
             JID = m2.group(1) + "@" + mConnectionManager.connection.getServiceName();
         chatIntent.putExtra("JID", JID);
-        Log.d("jid", JID);
+        //Log.d("jid", JID);
+
         FriendsList.this.startActivity(chatIntent);
         FriendsList.this.finish();
         return super.onChildClick(parent, v, groupPosition, childPosition, id);

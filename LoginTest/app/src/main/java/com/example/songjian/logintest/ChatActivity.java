@@ -2,25 +2,22 @@ package com.example.songjian.logintest;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
-import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ListView;
 
+
 import org.jivesoftware.smack.SmackException;
-import org.jivesoftware.smack.XMPPException;
 import org.jivesoftware.smack.chat.Chat;
 import org.jivesoftware.smack.chat.ChatManager;
-import org.jivesoftware.smack.chat.ChatManagerListener;
-import org.jivesoftware.smack.chat.ChatMessageListener;
-import org.jivesoftware.smack.packet.Message;
-import org.jivesoftware.smack.tcp.XMPPTCPConnection;
 
-import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 /**
@@ -38,9 +35,21 @@ public class ChatActivity extends AppCompatActivity {
     private String userJid;
     private Chat chat;
 
-    private List<Msg> msgList = new ArrayList<Msg>();
+    public List<Msg> msgList = new ArrayList<>();
+    private ChatObserver mChatObserver = new ChatObserver() {
+        @Override
+        public void onSuccess() {
+            new Handler(Looper.getMainLooper()).post(new Runnable() {
+                @Override
+                public void run() {
+                    printMsg();
+                    adapter.notifyDataSetChanged();
+                }
+            });
+        }
+    };
 
-
+    /*
     private ChatManagerListener mChatManagerListener = new ChatManagerListener() {
         @Override
         public void chatCreated(Chat chat, boolean createdLocally) {
@@ -57,7 +66,7 @@ public class ChatActivity extends AppCompatActivity {
             });
         }
     };
-
+    */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -67,12 +76,16 @@ public class ChatActivity extends AppCompatActivity {
 
         Intent get = getIntent();
         userJid = get.getStringExtra("JID");
+
         //userJid = "admin@127.0.0.1";
         chat = createChat(userJid);
-        initMsgs();
+
+        printMsg();
+        //initMsgs();
 
 
         adapter = new MsgAdapter(ChatActivity.this, R.layout.msg_item, msgList);
+//        adapter.notifyDataSetChanged();
         inputText = (EditText) findViewById(R.id.input_text);
         send = (Button) findViewById(R.id.send);
         back = (Button) findViewById(R.id.bBackFriendList);
@@ -91,9 +104,10 @@ public class ChatActivity extends AppCompatActivity {
                     }
                     Msg msg = new Msg(content, Msg.TYPE_SEND);
                     msgList.add(msg);
-                    adapter.notifyDataSetChanged();
+                    //printMsg();
                     msgListView.setSelection(msgList.size());
                     inputText.setText("");
+                    adapter.notifyDataSetChanged();
                 }
             }
         });
@@ -106,20 +120,13 @@ public class ChatActivity extends AppCompatActivity {
                 finish();
             }
         });
-        mConnectionManager.getChatManager().addChatListener(mChatManagerListener);
-//        ChatManager chatManager = getChatManager();
-//        chatManager.addChatListener(new ChatManagerListener() {
-//            @Override
-//            public void chatCreated(Chat chat, boolean createdLocally) {
-//                chat.addMessageListener(new ChatMessageListener() {
-//                    @Override
-//                    public void processMessage(Chat chat, Message message) {
-//                        System.out.print("我收到了: " + message.getBody());
-//                    }
-//                });
-//            }
-//        });
+        mConnectionManager.setChatObserver(mChatObserver);
+    }
 
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        mConnectionManager.removeChatObserver();
     }
 
     private void initMsgs() {
@@ -149,6 +156,19 @@ public class ChatActivity extends AppCompatActivity {
             return chatManager.createChat(jid);
         }
         throw new NullPointerException("服务器连接失败，请先连接服务器");
+    }
+
+    public void printMsg() {
+        String userName = userJid.split("@")[0];
+        List<String> incomingMsgList = mConnectionManager.incomingMsg.get(userName);
+        if (incomingMsgList != null) {
+            Iterator<String> iterator = incomingMsgList.iterator();
+            while (iterator.hasNext()) {
+                Msg incomingMsg = new Msg(iterator.next(), Msg.TYPE_RECEIVED);
+                msgList.add(incomingMsg);
+            }
+            incomingMsgList.clear();
+        }
     }
 
 }
