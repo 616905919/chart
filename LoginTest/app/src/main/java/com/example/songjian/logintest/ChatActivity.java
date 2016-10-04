@@ -11,11 +11,14 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 
 import org.jivesoftware.smack.SmackException;
+import org.jivesoftware.smack.XMPPException;
 import org.jivesoftware.smack.chat.Chat;
 import org.jivesoftware.smack.chat.ChatManager;
+import org.jivesoftware.smack.roster.RosterEntry;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -120,6 +123,13 @@ public class ChatActivity extends AppCompatActivity {
                 Intent friendListIntent = new Intent(ChatActivity.this, FriendsList.class);
                 startActivity(friendListIntent);
                 finish();
+            }
+        });
+        findViewById(R.id.delete).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                mConnectionManager.removeFriend(userJid);
+                back.callOnClick();
             }
         });
         mConnectionManager.setChatObserver(mChatObserver);

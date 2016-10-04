@@ -1,6 +1,8 @@
 package com.example.songjian.logintest;
 
 import android.util.Log;
+import android.widget.Toast;
+
 import org.jivesoftware.smack.ConnectionConfiguration;
 import org.jivesoftware.smack.SmackException;
 import org.jivesoftware.smack.XMPPException;
@@ -10,12 +12,17 @@ import org.jivesoftware.smack.chat.ChatManagerListener;
 import org.jivesoftware.smack.chat.ChatMessageListener;
 import org.jivesoftware.smack.packet.Message;
 import org.jivesoftware.smack.roster.Roster;
+import org.jivesoftware.smack.roster.RosterEntry;
 import org.jivesoftware.smack.tcp.XMPPTCPConnection;
 import org.jivesoftware.smack.tcp.XMPPTCPConnectionConfiguration;
+import org.jivesoftware.smackx.search.ReportedData;
+import org.jivesoftware.smackx.search.UserSearchManager;
+import org.jivesoftware.smackx.xdata.Form;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -173,5 +180,102 @@ public class ConnectionManager {
 
     public void removeChatObserver() {
         this.mChatObserver = null;
+    }
+
+    public boolean removeFriend(String user) {
+        try {
+            if (user.contains("@")) {
+                user = user.split("@")[0];
+            }
+            if (isUserExist(user)) {
+                RosterEntry entry = roster.getEntry(user);
+                if (entry != null) {
+                    roster.removeEntry(entry);
+                    return true;
+                } else
+                    return false;
+            } else {
+                return false;
+            }
+        } catch (SmackException.NotLoggedInException e) {
+            e.printStackTrace();
+        } catch (SmackException.NoResponseException e) {
+            e.printStackTrace();
+        } catch (SmackException.NotConnectedException e) {
+            e.printStackTrace();
+        } catch (XMPPException.XMPPErrorException e) {
+            e.printStackTrace();
+        }
+        throw new NullPointerException("failed to connect to the server!");
+    }
+
+
+    public boolean isUserExist(String user) {
+        List<HashMap<String, String>> results = searchUsers(user);
+        Iterator<HashMap<String, String>> iterator = results.iterator();
+        if (iterator.hasNext()) {
+            return true;
+        }
+        return false;
+    }
+
+    public boolean addFriend(String user, String nickName, String groupName) {
+        if (isConnected()) {
+            try {
+                if (isUserExist(user)) {
+                    roster.createEntry(user, nickName, new String[]{groupName});
+                    return true;
+                } else {
+                    return false;
+                }
+            } catch (SmackException.NotLoggedInException e) {
+                e.printStackTrace();
+            } catch (SmackException.NoResponseException e) {
+                e.printStackTrace();
+            } catch (SmackException.NotConnectedException e) {
+                e.printStackTrace();
+            } catch (XMPPException.XMPPErrorException e) {
+                e.printStackTrace();
+            }
+        }
+        throw new NullPointerException("failed to connect to the server!");
+    }
+
+
+    //查询用户
+    public List<HashMap<String, String>> searchUsers(String userName) {
+        if (connection == null)
+            return null;
+        HashMap<String, String> user = null;
+        List<HashMap<String, String>> results = new ArrayList<HashMap<String, String>>();
+        System.out.println("Begin searching......" + connection.getHost() + "  " + connection.getServiceName());
+
+        try {
+            UserSearchManager usm = new UserSearchManager(connection);
+            Form searchForm = usm.getSearchForm("search." + connection.getServiceName());
+            Form answerForm = searchForm.createAnswerForm();
+            answerForm.setAnswer("Username", true);
+            answerForm.setAnswer("search", userName);
+            ReportedData data = usm.getSearchResults(answerForm, "search." + connection.getServiceName());
+
+            Iterator<ReportedData.Row> it = data.getRows().iterator();
+            ReportedData.Row row = null;
+
+            while (it.hasNext()) {
+                user = new HashMap<String, String>();
+                row = it.next();
+                user.put("userAccount", row.getValues("jid").toString());
+                //user.put("userPhote", row.getValues("userPhote").toString());
+                results.add(user);
+            }
+
+        } catch (SmackException.NoResponseException e) {
+            e.printStackTrace();
+        } catch (SmackException.NotConnectedException e) {
+            e.printStackTrace();
+        } catch (XMPPException.XMPPErrorException e) {
+            e.printStackTrace();
+        }
+        return results;
     }
 }

@@ -3,24 +3,33 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical">
+
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/delete"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_weight="2"
+            android:text="delete this friend"/>
+
         <TextView
             android:id="@+id/nameText"
-            android:layout_weight="1"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_weight="10"
             android:gravity="center"
-            android:textSize="60px"
-            android:layout_width="fill_parent" />
+            android:textSize="60px" />
 
         <Button
             android:id="@+id/bBackFriendList"
-            android:layout_weight="4"
-            android:layout_width="fill_parent"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center_horizontal"
+            android:layout_weight="1"
             android:text="Back" />
     </LinearLayout>
 

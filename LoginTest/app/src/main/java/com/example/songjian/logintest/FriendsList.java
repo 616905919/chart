@@ -242,76 +242,24 @@ public class FriendsList extends ExpandableListActivity {
                         String groupName = etAddFriendGroup.getText().toString();
                         if ("".equals(groupName))
                             groupName = null;
-                        if (addFriend(userName, nickName, groupName, mConnectionManager.connection)) {
+                        if (mConnectionManager.addFriend(userName, nickName, groupName)) {
                             new Handler(Looper.getMainLooper()).post(new Runnable() {
                                 @Override
                                 public void run() {
                                     setListData();
                                 }
                             });
-
                             setListData();
                             Toast.makeText(FriendsList.this, "adding friend succeeded", Toast.LENGTH_SHORT).show();
                         } else {
-                            Toast.makeText(FriendsList.this, "adding friend failed", Toast.LENGTH_SHORT).show();
+                            Toast.makeText(FriendsList.this, "User doesn't exist", Toast.LENGTH_SHORT).show();
+//                            Toast.makeText(FriendsList.this, "adding friend failed", Toast.LENGTH_SHORT).show();
                         }
                     }
                 }).create();
         dialog.show();
     }
 
-
-    public boolean addFriend(String user, String nickName, String groupName, XMPPTCPConnection connection) {
-        if (mConnectionManager.isConnected()) {
-            try {
-                if (isUserExist(user)) {
-                    roster.createEntry(user, nickName, new String[]{groupName});
-                    return true;
-                } else {
-                    Toast.makeText(FriendsList.this, "User doesn't exist", Toast.LENGTH_SHORT).show();
-                    return false;
-                }
-            } catch (SmackException.NotLoggedInException e) {
-                e.printStackTrace();
-            } catch (SmackException.NoResponseException e) {
-                e.printStackTrace();
-            } catch (SmackException.NotConnectedException e) {
-                e.printStackTrace();
-            } catch (XMPPException.XMPPErrorException e) {
-                e.printStackTrace();
-            }
-        }
-        throw new NullPointerException("failed to connect to the server!");
-    }
-
-
-    public boolean removeFriend(String user) {
-        try {
-            if (user.contains("@")) {
-                user = user.split("@")[0];
-            }
-            if (isUserExist(user)) {
-                RosterEntry entry = roster.getEntry(user);
-                if (entry != null) {
-                    roster.removeEntry(entry);
-                    return true;
-                } else
-                    return false;
-            } else {
-                Toast.makeText(FriendsList.this, "User doesn't exist", Toast.LENGTH_SHORT).show();
-                return false;
-            }
-        } catch (SmackException.NotLoggedInException e) {
-            e.printStackTrace();
-        } catch (SmackException.NoResponseException e) {
-            e.printStackTrace();
-        } catch (SmackException.NotConnectedException e) {
-            e.printStackTrace();
-        } catch (XMPPException.XMPPErrorException e) {
-            e.printStackTrace();
-        }
-        throw new NullPointerException("failed to connect to the server!");
-    }
 
     //查询所有分组
     public static List<RosterGroup> getGroups(Roster roster) {
@@ -359,49 +307,5 @@ public class FriendsList extends ExpandableListActivity {
         return Entrieslist;
     }
 
-    //查询用户
-    public static List<HashMap<String, String>> searchUsers(String userName) {
-        if (mConnectionManager.connection == null)
-            return null;
-        HashMap<String, String> user = null;
-        List<HashMap<String, String>> results = new ArrayList<HashMap<String, String>>();
-        System.out.println("Begin searching......" + mConnectionManager.connection.getHost() + "  " + mConnectionManager.connection.getServiceName());
 
-        try {
-            UserSearchManager usm = new UserSearchManager(mConnectionManager.connection);
-            Form searchForm = usm.getSearchForm("search." + mConnectionManager.connection.getServiceName());
-            Form answerForm = searchForm.createAnswerForm();
-            answerForm.setAnswer("Username", true);
-            answerForm.setAnswer("search", userName);
-            ReportedData data = usm.getSearchResults(answerForm, "search." + mConnectionManager.connection.getServiceName());
-
-            Iterator<ReportedData.Row> it = data.getRows().iterator();
-            ReportedData.Row row = null;
-
-            while (it.hasNext()) {
-                user = new HashMap<String, String>();
-                row = it.next();
-                user.put("userAccount", row.getValues("jid").toString());
-                //user.put("userPhote", row.getValues("userPhote").toString());
-                results.add(user);
-            }
-
-        } catch (SmackException.NoResponseException e) {
-            e.printStackTrace();
-        } catch (SmackException.NotConnectedException e) {
-            e.printStackTrace();
-        } catch (XMPPException.XMPPErrorException e) {
-            e.printStackTrace();
-        }
-        return results;
-    }
-
-    public static boolean isUserExist(String user) {
-        List<HashMap<String, String>> results = searchUsers(user);
-        Iterator<HashMap<String, String>> iterator = results.iterator();
-        if (iterator.hasNext()) {
-            return true;
-        }
-        return false;
-    }
 }
