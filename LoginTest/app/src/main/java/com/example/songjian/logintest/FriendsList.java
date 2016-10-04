@@ -8,8 +8,11 @@ import android.os.Bundle;
 import android.os.Looper;
 import android.support.v7.app.AlertDialog;
 import android.util.Log;
+import android.view.ContextMenu;
 import android.view.LayoutInflater;
+import android.view.MenuItem;
 import android.view.View;
+import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ExpandableListView;
@@ -49,7 +52,7 @@ import java.util.regex.Pattern;
  */
 public class FriendsList extends ExpandableListActivity {
     //930新加
-    private Map<String, Chat> chatManage = new HashMap<String, Chat>();// 聊天窗口管理map集合
+//    private Map<String, Chat> chatManage = new HashMap<String, Chat>();// 聊天窗口管理map集合
 
     //private static UserAreaActivity userAreaActivityInstance = UserAreaActivity.UserAreaActivityInstance;
     private static ConnectionManager mConnectionManager = ConnectionManager.shareInstance();
@@ -93,22 +96,22 @@ public class FriendsList extends ExpandableListActivity {
         });
     }
     //930新加
-    public Chat getFriendChat (String friend, MessageListener listener) {
-        if(mConnectionManager.connection == null) {
-            return null;
-        }
-        for (String fristr: chatManage.keySet()){
-            if(fristr.equals(friend)){
-                return chatManage.get(fristr);
-            }
-        }
-        ChatManager chatManager = ChatManager.getInstanceFor(mConnectionManager.connection);
-
-        Chat chat = chatManager.createChat(friend+"@"+mConnectionManager.connection.getServiceName(), (ChatMessageListener) listener);
-
-        chatManage.put(friend,chat);
-        return chat;
-    }
+    //    public Chat getFriendChat (String friend, MessageListener listener) {
+    //        if(mConnectionManager.connection == null) {
+    //            return null;
+    //        }
+    //        for (String fristr: chatManage.keySet()){
+    //            if(fristr.equals(friend)){
+    //                return chatManage.get(fristr);
+    //            }
+    //        }
+    //        ChatManager chatManager = ChatManager.getInstanceFor(mConnectionManager.connection);
+    //
+    //        Chat chat = chatManager.createChat(friend+"@"+mConnectionManager.connection.getServiceName(), (ChatMessageListener) listener);
+    //
+    //        chatManage.put(friend,chat);
+    //        return chat;
+    //    }
 
     public void setListData() {
         groups.clear();
@@ -177,7 +180,6 @@ public class FriendsList extends ExpandableListActivity {
         //Log.d("c_size_inFunc", String.valueOf(childs.size()));
         setListAdapter(sela);
     }
-
 
     @Override
     public boolean onChildClick(ExpandableListView parent, View v,

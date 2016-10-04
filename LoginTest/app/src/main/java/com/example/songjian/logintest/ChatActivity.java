@@ -10,6 +10,7 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ListView;
+import android.widget.TextView;
 
 
 import org.jivesoftware.smack.SmackException;
@@ -79,7 +80,8 @@ public class ChatActivity extends AppCompatActivity {
 
         //userJid = "admin@127.0.0.1";
         chat = createChat(userJid);
-
+//        TextView tv = (TextView) findViewById(R.id.nameText);
+        ((TextView) findViewById(R.id.nameText)).setText(userJid.substring(0, userJid.indexOf('@')));
         printMsg();
         //initMsgs();
 
